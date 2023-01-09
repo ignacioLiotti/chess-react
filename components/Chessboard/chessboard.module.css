@@ -1,0 +1,19 @@
+.square{
+    width: 12.5%;
+    height: 12.5%;
+    padding-bottom: 12.5%;
+    float: left;
+}
+.black{
+    background-color: #000;
+}
+.white{
+    background-color: #fff;
+}
+.chessboard{
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    width: 100%;
+    max-width: 1000px;
+    margin: 20px auto;
+}
