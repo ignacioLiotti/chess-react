@@ -17,18 +17,25 @@ export const initial = {
 	pieces: [],
   selectedPiece: null,
   selectedPiecePossibleMoves: [],
+  turn: 'w',
 }
 
 export const reducer = (state, action) => {
 
   // O(1) FUNTIONS TO GET AND SET VALUES IN THE BOARD
 
-  function getPosition(point){
-    return state.board[point?.y][point?.x].position
+  function getPosition(point, board){
+
+    if (point.x > 7 || point.y > 7 || point.x < 0 || point.y < 0) return null
+
+    return board[point?.y][point?.x].position
   }
 
-  function getPiece(point){
-    return state.board[point?.y][point?.x].piece
+  function getPiece(point, board){
+
+    if (point.x > 7 || point.y > 7 || point.x < 0 || point.y < 0) return null
+
+    return board[point?.y][point?.x].piece
   }
 
   function clearPieceFromCells(piece, cells) {
@@ -69,8 +76,8 @@ export const reducer = (state, action) => {
   // ------------------------------
 
   function movePiece(from, to, state){
-    const piece = getPiece(from)
-    const pieceToTake = getPiece(to)
+    const piece = getPiece(from, state.board)
+    const pieceToTake = getPiece(to, state.board)
     const nextState = {...state}
 
     if (piece){
@@ -93,8 +100,10 @@ export const reducer = (state, action) => {
     // get the movement of a piece based on its id, and if it is a pawn, check if it is the first move and if it is, add the movement of 2 steps forward and check its color
     let movement = []
 
+    const board = state.board
+
     function isRookInStartingPosition(point){
-      const rook = getPiece(point)
+      const rook = getPiece(point,board)
 
       if (piece?.color === 'w'){
         if(rook?.history.length === 0 && rook?.id === 'rw'){
@@ -124,15 +133,15 @@ export const reducer = (state, action) => {
         }
       }
       function canCastleLeft(y) {
-        return getPiece({ x: 1, y }) === null &&
-               getPiece({ x: 2, y }) === null &&
-               getPiece({ x: 3, y }) === null &&
+        return getPiece({ x: 1, y },board) === null &&
+               getPiece({ x: 2, y },board) === null &&
+               getPiece({ x: 3, y },board) === null &&
                isRookInStartingPosition({ x: 0, y });
       }
       
       function canCastleRight(y) {
-        return getPiece({ x: 5, y }) === null &&
-               getPiece({ x: 6, y }) === null &&
+        return getPiece({ x: 5, y },board) === null &&
+               getPiece({ x: 6, y },board) === null &&
                isRookInStartingPosition({ x: 7, y });
       }
 
@@ -175,7 +184,27 @@ export const reducer = (state, action) => {
     }
 
     if(piece?.type === 'p'){
-      return movements[piece?.id]
+    //check if there is an oponent piece either diagonally or on its sides, and add an attack move 
+
+      const right = getPiece({ x: piece?.x + 1, y: piece?.y + (piece?.color === 'w' ? -1 : 1) },board)
+      const left = getPiece({ x: piece?.x - 1, y: piece?.y + (piece?.color === 'w' ? -1 : 1) },board)
+
+      let pieceMovements = structuredClone(movements[piece?.id])
+
+      if(right?.color !== piece?.color && right !== null){
+        pieceMovements.movements.push({
+          x: 1,
+          y: (piece?.color === 'w' ? -1 : 1),
+        })
+      }
+      if(left?.color !== piece?.color && left !== null){
+        pieceMovements.movements.push({
+          x: -1,
+          y: (piece?.color === 'w' ? -1 : 1),
+        })
+      }
+
+      return pieceMovements
     }
 
     if(piece?.castle){
@@ -209,6 +238,7 @@ export const reducer = (state, action) => {
 
       return movement
     }
+
 
     if(piece?.type === 'k' && canCastle()){
       let kingsMovement = movements[piece?.type]
@@ -309,7 +339,8 @@ export const reducer = (state, action) => {
         if (board[newY][newX].piece === null) {
           possibleMoves.push({ x: newX, y: newY, attack: false, attackedPiece: undefined })
         } else if (board[newY][newX].piece.color !== piece.color) {
-          possibleMoves.push({ x: newX, y: newY, attack: true, attackedPiece: board[newY][newX] })
+            if (piece.type === 'p' && (movementX === 0)) return
+            possibleMoves.push({ x: newX, y: newY, attack: true, attackedPiece: board[newY][newX] })
         }
       })
     }
@@ -366,6 +397,8 @@ export const reducer = (state, action) => {
       let nextState = { ...state }
       let other = {}
 
+      console.log(piece, point, attackedPiece)
+
       // if king castles to the left move the left rook
 
       if (piece.id === 'kw' && point.x === 2){
@@ -386,8 +419,8 @@ export const reducer = (state, action) => {
 
 			nextState.board = clearPieceFromCells(piece, nextState.board)
 
-      const piecePositionInChess = getPosition({x: piece.x, y: piece.y})
-      const pointPositionInChess = getPosition(point)
+      const piecePositionInChess = getPosition({x: piece.x, y: piece.y}, state.board)
+      const pointPositionInChess = getPosition(point, state.board)
 
 			piece.x = point.x
 			piece.y = point.y
@@ -415,7 +448,7 @@ export const reducer = (state, action) => {
       
       nextState.selectedPiecePossibleMoves = []
 
-      console.log(nextState)
+      nextState.turn = nextState.turn === 'w' ? 'b' : 'w'
 
 			return nextState
 		}

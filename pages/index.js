@@ -1,4 +1,5 @@
 import Head from 'next/head'
+import React from 'react'
 import Image from 'next/image'
 import { Inter } from '@next/font/google'
 import styles from '../styles/Home.module.css'
@@ -7,6 +8,13 @@ import Chessboard from '../components/Chessboard/Chessboard'
 const inter = Inter({ subsets: ['latin'] })
 
 export default function Home() {
+
+  const [rotation, setRotation] = React.useState(0)
+
+  const handleRotation = (e) => {
+    setRotation(e.target.value)
+  }
+
   return (
     <>
       <Head>
@@ -15,7 +23,21 @@ export default function Home() {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
-      <Chessboard/>
+      <div
+        style={{
+          "--rotation": rotation + 'deg',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          width: '100%',
+          transformStyle: 'preserve-3d',
+          perspective: '1000px',
+          perspectiveOrigin: '50% 50%'
+        }}
+      >
+        <Chessboard rotation={rotation}/>
+      </div>
+      <input type="range" min={0} max={40} onChange={handleRotation} />
     </>
   )
 }

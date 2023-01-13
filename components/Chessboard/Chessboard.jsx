@@ -5,8 +5,11 @@ import * as React from "react"
 import { motion } from "framer-motion"
 import { initial, reducer } from "./reducer"
 import { Chess } from 'chess.js'
+import styles from './chessboard.module.css'
+import aiPlayer from './chessAI'
+import { getPiece } from "./chessUtils/simpleUtils"
 
-export default function App() {
+export default function App({rotation}) {
 	const [state, dispatch] = React.useReducer(reducer, initial)
 
 		const myChess = new Chess()
@@ -32,12 +35,29 @@ export default function App() {
 	}, [])
 
 	React.useEffect(() => {
-		console.log('CHECK',state.check)
+		// console.log('CHECK',state.check)
 	}, [state])
 
+	React.useEffect(() => {
+		if (state.turn === 'b') {
+
+			const predictedMove = aiPlayer(state.board, 2)
+
+			const movingPiece = getPiece({x: predictedMove.from.col, y: predictedMove.from.row}, state.board )
+
+			setTimeout(() => {
+				console.log('moving piece', movingPiece, predictedMove)
+				dispatch({ type: "MOVE_PIECE", payload: {piece: movingPiece, point: {x: predictedMove.to.x, y: predictedMove.to.y}, attackedPiece: predictedMove.attackedPiece } })
+			}, 1000)
+		}
+	}, [state.turn])
+
 	return (
-		<div className="chessWrapper">
-			<div className="chessGrid">
+		<motion.div className={styles.chessWrapper}
+			// initial={{"--turn-rotation": state.turn === 'w' ? '180deg' : 0}}
+			// animate={{"--turn-rotation": state.turn === 'w' ? 0 : '180deg'}}
+		>
+			<div className={styles.chessGrid}>
 				{state.board.map((row, y) =>
 					row.map((_, x) => {
 						return(
@@ -51,47 +71,49 @@ export default function App() {
 						)
 					})
 				)}
-			</div>
-
-      {/* make the cells that should appear green as to show that the clicked item can move on those positions */}
-      
 				{state?.pieces?.map(piece => {
 					return(
 						<ChessPiece
 							piece={piece}
 							dispatch={dispatch}
 							state={state}
+							rotation={rotation}
 							/>
 					)
 				})}
-		</div>
+			</div>
+
+      {/* make the cells that should appear green as to show that the clicked item can move on those positions */}
+      
+				
+		</motion.div>
 	)
 }
 
-const ChessPiece = ({ piece, dispatch, state }) => {
+const ChessPiece = ({ piece, dispatch, state, rotation }) => {
 					const x = piece.x * 46
 					const y = piece.y * 46
 					const isDragging = piece.id === state.dragging?.id
-					const pieceColor = piece.color === 'w' ? '#fff' : '#000'
+					const pieceColor = piece.color === 'w' ? '#fcfcfc' : '#131313'
+					const pieceSideColor = piece.color === 'w' ? '#e0e0e0' : '#1f1f1f'
 					const pieceInverseColor = piece.color === 'w' ? '#000' : '#fff'
+					const pieceHeight = ((rotation / 10) * 1.25 ) ;
+					const shadowHeight = (((rotation ** (1.15)) / 10) * 1.25 ) + 'px' ;
+					// const shadowHeight = (((rotation ** (state.turn === 'w' ? 1.15 : 1)) / 10) * 1.25 ) + 'px' ;
+					const elevation = rotation / 7
+					// const turnOrientation = state.turn === 'w' ? 1 : -1
+					const turnOrientation = 1
 					const possibleMoves = state.selectedPiecePossibleMoves
 
 					return (
 							<motion.div
 								key={piece.id}
 								tabIndex={0}
-                onFocus={() => {      
-                  dispatch({type: 'CLICKED', payload: piece})
-                }}
-								// onBlur={(event, info) => {
-								// 	console.log(state.selectedPiece, piece)
-								// 	if (state.selectedPiece !== piece){
-								// 		setTimeout(() => {
-								// 			dispatch({type: 'CLEAR_POSSIBLE_MOVEMENTS', payload: piece})
-								// 		}, 100)
-								// 	}
-								// 	// dispatch({type: 'CLEAR_POSSIBLE_MOVEMENTS', payload: piece})
-								// }}
+                onFocus={() => {   
+									if (piece.color === state.turn) {   
+                  	dispatch({type: 'CLICKED', payload: piece})
+									}
+								}}
 								drag
 								dragTransition={{
 									power: 0,
@@ -103,10 +125,12 @@ const ChessPiece = ({ piece, dispatch, state }) => {
 									modifyTarget: target => Math.round(target / 46) * 46
 								}}
 								onDragStart={() => { 
-									dispatch({type: 'CLICKED', payload: piece})
+									if (piece.color === state.turn) {   
+										dispatch({type: 'CLICKED', payload: piece})
+									}
 								}}
 								onDragEnd={(event, info) => {
-									const draggedX = Math.round(info.offset.x / 46) 
+									const draggedX = Math.round(info.offset.x / 46)
 									const draggedY = Math.round(info.offset.y / 46) 
 
 									const newPoint = {x: draggedX + piece.x, y: draggedY + piece.y}
@@ -121,13 +145,19 @@ const ChessPiece = ({ piece, dispatch, state }) => {
 								}}
 
 
-								className="chessPiece"
+								className={styles.chessPiece}
 								style={{
+									"--side-color": pieceSideColor,
+									"--piece-color": pieceColor,
+									"--dragging-index": isDragging ? 1 : 0,
+									"--text-color": pieceInverseColor,
+									"--side-height": pieceHeight,
+									"--shadow-height": shadowHeight,
+									"--turn-orientation": turnOrientation,
+									// elevate 3d the piece depending on elevation
+									transform: `translateZ(${elevation}px)`,
 									top: y,
 									left: x,
-									backgroundColor: pieceColor,
-									color: pieceInverseColor,
-									zIndex: isDragging ? 99 : 1,
 								}}
 							>
                 {piece.id.toUpperCase()}
@@ -137,18 +167,13 @@ const ChessPiece = ({ piece, dispatch, state }) => {
 
 const ChessCell = ({ x,y, dispatch, state }) => {
 // if (state.selectedPiece) {
-							// get the possible moves for the clicked item
+              const cellColor = (x + y) % 2 === 0 ? '#fcfcfc' : '#0f0f0f'
 							const possibleMoves = state.selectedPiecePossibleMoves
-							// check if the current cell is in the possible moves array
-							// const willFit = possibleMoves.some(point => point.x === x && point.y === y)
 							const willFit = possibleMoves?.some(point => point.x === x && point.y === y)
-
 							const isAnAttack = possibleMoves?.some(point => point.x === x && point.y === y && point.attack === true)
-
 							const attackedPiece = state.pieces?.find(piece => piece.x === x && piece.y === y)
 
 							const handleMovement = () => {
-								console.log('BOLAS', {x:state.selectedPiece.x,y:state.selectedPiece.y}, {x,y})
 								dispatch({ type: "MOVE_PIECE", payload: { piece: state.selectedPiece, point: {x, y}, attackedPiece: attackedPiece } })
 							}
 
@@ -156,9 +181,9 @@ const ChessCell = ({ x,y, dispatch, state }) => {
 								<div
 									onClick={handleMovement}
 									key={`${y}_${x}`}
-									className="chessCell"
+									className={styles.chessCell}
 									style={{
-										backgroundColor: willFit ? isAnAttack ? 'blue' : 'green' : '',
+										backgroundColor: willFit ? isAnAttack ? 'blue' : 'green' : cellColor,
 										pointerEvents: willFit ? 'all' : 'none',
 									}}
 								>

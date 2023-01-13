@@ -17,3 +17,88 @@
     max-width: 1000px;
     margin: 20px auto;
 }
+.chessWrapper{
+	position: relative;
+	width: calc(100vw - 20px);
+	height: calc(100vh - 20px);
+	overflow: hidden;
+	border: 1px solid #ccc;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	transform: rotate3d(1, 0, 0, var(--rotation));
+	/* transform: rotate3d(1, 0, 0, var(--rotation)) rotateZ(var(--turn-rotation)); */
+}
+
+/* make an animation that rotates in the z axis the chessWrapper from 0 to --turn-rotation */
+
+@keyframes rotateBlack{
+	from{
+		transform: rotate3d(1, 0, 0, var(--rotation)) rotateZ(0);
+	}
+	to{
+		transform: rotate3d(1, 0, 0, var(--rotation)) rotateZ(180);
+	}
+}
+@keyframes rotateWhite{
+	from{
+		transform: rotate3d(1, 0, 0, var(--rotation)) rotateZ(180);
+	}
+	to{
+		transform: rotate3d(1, 0, 0, var(--rotation)) rotateZ(0);
+	}
+}
+
+.chessGrid{
+	position: relative;
+	top: 0;
+	left: 0;
+	display: grid;
+	grid-gap: 2px;
+	grid-auto-rows: 44px;
+	grid-template-columns: repeat(8, 44px);
+}
+
+.chessPiece{
+	position: absolute;
+	
+	width: 42px;
+	height: 42px;
+	
+	font-size: 10px;
+	text-align: right;
+	color: var(--text-color);
+	margin-top: calc( var(--side-height) * var(--turn-orientation) * -1px ) ;
+	padding: 2px 4px;
+	
+	border-radius: 50px;
+	background-color: var(--piece-color);
+	
+	box-shadow: 
+	0px calc(var(--side-height) * var(--turn-orientation) * 1px) 0px 0px var(--side-color),
+	0px var(--shadow-height) 1px 0px #0000008c;
+
+	z-index: var(--dragging-index);
+
+}
+/* .chessPiece::before{
+	content: '';
+	position: absolute;
+	top: 21px;
+	left: -1px;
+
+	width: 100%;
+	height: 10px;
+
+	border: 1px solid #000;
+	background-color: rgb(0, 0, 0);
+
+	z-index: -1;
+} */
+
+.chessCell{
+	width: 42px;
+	height: 42px;
+	border: 1px solid #ccc;
+	opacity: 0.51;
+}
