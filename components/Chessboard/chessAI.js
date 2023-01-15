@@ -1,178 +1,198 @@
-import { lookForMovements } from './chessUtils/simpleUtils'
+import { getPiece, lookForMovements } from './chessUtils/simpleUtils'
+import movements from "./movements"
+import { getPieceValue, simulateMove } from './chessUtils/AIUtils';
 
-// The AI player function, which takes in the current board state and the desired number of iterations,
+// Constants for the different difficulty levels
+const DIFFICULTY_LEVELS = {
+  NORMAL: 1,
+  HARD: 2,
+  IMPOSSIBLE: 3
+};
+
+// The AI player function, which takes in the current board state and the desired difficulty level,
 // and returns a recommended move for the AI player
-export default function aiPlayer(board, iterations) {
+export default function aiPlayer(board, difficultyLevel) {
+
   if (board === null) return null;
 
-  let root = new Node(null, board);
+  function alphaBeta(board, depth, alpha, beta, isMaximizing) {
 
-  for (let i = 0; i < iterations; i++) {
-    let node = root;
+    let bestMove = null;
 
-    // Select
-    while (!node.isLeaf()) {
-      node = node.select();
+    if (depth === 0 || gameOver(board)) {
+        return { score: evaluatePosition(board, 'b'), move: bestMove };
     }
-
-    // Expand
-    if (!node.isTerminal()) {
-      node = node.expand();
-    }
-
-    // Simulate
-    let result = simulate(node.board);
-
-    // Backpropagate
-    while (node !== null) {
-      node.update(result);
-      node = node.parent;
-    }
-  }
-
-  // Return the best move
-  return root.bestChild();
-}
-
-class Node {
-  constructor(parent, board) {
-    this.parent = parent;
-    this.board = structuredClone(board);
-    this.children = [];
-    this.visits = 0;
-    this.wins = 0;
-  }
-
-  isLeaf() {
-    return this.children.length === 0;
-  }
-
-  isTerminal() {
-    return gameOver(this.board);
-  }
-
-  select() {
-    let bestChild = null;
-    let bestUCB = -Infinity;
-    for (let child of this.children) {
-      let ucb = child.wins / child.visits + Math.sqrt(2 * Math.log(this.visits) / child.visits);
-      if (ucb > bestUCB) {
-        bestChild = child;
-        bestUCB = ucb;
-      }
-    }
-    return bestChild;
-  }
-
-  expand() {
-    let moves = generateMoves(this.board);
-    for (let move of moves) {
-      let newBoard = applyMove(this.board, move);
-      let child = new Node(this, newBoard);
-      this.children.push(child);
-    }
-    return this.children[Math.floor(Math.random() * this.children.length)];
-  }
-
-  update(result) {
-    this.visits++;
-    this.wins += result;
-  }
-
-  bestChild() {
-    let bestChild = null;
-    let bestWinRate = -Infinity;
-    for (let child of this.children) {
-      let winRate = child.wins / child.visits;
-      if (winRate > bestWinRate) {
-        bestChild = child;
-        bestWinRate = winRate;
-      }
-    }
-    return bestChild.move;
-  }
-}
-
-function gameOver(board) {
-  let whiteKing = null;
-  let blackKing = null;
-  
-  for (let i = 0; i < board.length; i++) {
-    for (let j = 0; j < board[i].length; j++) {
-      let piece = board[i][j].piece;
-      if (piece !== null) {
-        if (piece.type === "king" && piece.color === "w") {
-          whiteKing = piece;
-        } else if (piece.type === "king" && piece.color === "b") {
-          blackKing = piece;
-        }
-      }
-    }
-  }
-  
-  if (whiteKing === null || blackKing === null) {
-    return true;
-  }
-  
-  return false;
-}
-
-function evaluatePosition(board) {
-  let score = 0;
-
-  for (let i = 0; i < board.length; i++) {
-    for (let j = 0; j < board[i].length; j++) {
-      let piece = board[i][j].piece;
-      if (piece !== null) {
-        if (piece.color === "w") {
-          score += piece.value;
-        } else {
-          score -= piece.value;
-        }
-      }
-    }
-  }
-
-  return score;
-}
-
-function generateMoves(board) {
-  let moves = [];
-
-  for (let i = 0; i < board.length; i++) {
-    for (let j = 0; j < board.length; j++) {
-      let cell = board[i][j];
-      const from = { row: i, col: j };
-
-      if (cell.piece === null || cell.piece.color === 'w') {
-        continue;
-      }
     
-      for (let move of lookForMovements(cell.piece, board)) {
-        moves.push({from: from, to: move});
+    if (isMaximizing) {
+        let bestScore = -Infinity;
+        for (let move of generateMoves(board, 'b')) {
+            let newBoard = simulateMove(board, move);
+            let result = alphaBeta(newBoard, depth - 1, alpha, beta, false);
+            if (result.score > bestScore) {
+                bestScore = result.score;
+                bestMove = move;
+            }
+            alpha = Math.max(alpha, bestScore);
+            if (beta <= alpha) {
+                break;
+            }
+        }
+        return { score: bestScore, move: bestMove };
+    } else {
+        let bestScore = Infinity;
+        for (let move of generateMoves(board, 'w')) {
+            let newBoard = simulateMove(board, move);
+            let result = alphaBeta(newBoard, depth - 1, alpha, beta, true);
+            if (result.score < bestScore) {
+                bestScore = result.score;
+                bestMove = move;
+            }
+            beta = Math.min(beta, bestScore);
+            if (beta <= alpha) {
+                break;
+            }
+        }
+        return { score: bestScore, move: bestMove };
+    }
+}
+  
+  // Function to generate all possible moves for the current board state
+  function generateMoves(board, color) {
+    
+    let moves = [];
+
+    for (let i = 0; i < board.length; i++) {
+      for (let j = 0; j < board.length; j++) {
+
+        let cell = board[i][j];
+        
+        if (cell.piece !== null && cell.piece.color === color) {
+
+          const from = { row: i, col: j };
+          const possibleMoves = lookForMovements(cell.piece, board);
+
+          for (let move of possibleMoves) {
+            moves.push({from: from, to: move});
+          }
+
+        }
+
       }
     }
+    return moves;
+}
+
+  
+  
+  // Function to evaluate the current position on the board
+  function evaluatePosition(board, color) {
+    let score = 0;
+    // Material advantage
+    score += getMaterialScore(board, color);
+    // Mobility
+    score += getMobilityScore(board, color);
+    // King safety
+    score += getKingSafetyScore(board, color);
+    // Pawn structure
+    score += getPawnStructureScore(board, color);
+    // Attacking opponent's pieces
+    score += getAttackScore(board, color);
+    // Control of the center
+    score += getCenterControlScore(board, color);
+    // King attack
+    score += getKingAttackScore(board, color);
+
+    return score;
   }
 
-  return moves;
+  function getMaterialScore(board) {
+    let score = 0;
+    for (let i = 0; i < board.length; i++) {
+      for (let j = 0; j < board[i].length; j++) {
+        if (board[i][j].piece) {
+          score += getPieceValue(board[i][j].piece);
+        }
+      }
+    }
+    return score;
+  }
+
+  function getMobilityScore(piece, board) {
+    let mobilityScore = 0;
+    const possibleMoves = lookForMovements(piece, board);
+    // for each possible move, increment the mobility score
+    possibleMoves.forEach(move => {
+        mobilityScore++;
+    });
+    return mobilityScore;
+  }
+
+  function getKingSafetyScore(board, color) {
+    let score = 0;
+    let king;
+    // find the king on the board
+    for (let i = 0; i < board.length; i++) {
+      for (let j = 0; j < board[i].length; j++) {
+        if (board[i][j].piece && board[i][j].piece.type === "k" && board[i][j].piece.color === color) {
+          king = board[i][j].piece;
+          break;
+        }
+      }
+    }
+
+    // check if the king is in check
+    if (lookForCheck(king, board)) {
+        score -= 100;
+    }
+
+    // check if the king is in checkmate
+    if (lookForCheckmate(king, board)) {
+        score -= 1000;
+    }
+
+    // check if the king is in a safe position
+    let safeSquares = 0;
+    for (let move of lookForMovements(king, board)) {
+        if (!move.attack) {
+            safeSquares++;
+        }
+    }
+    score += safeSquares * 10;
+
+    // check if the king is surrounded by friendly pieces
+    let friendlySurrounding = 0;
+    for (let move of lookForMovements(king, board)) {
+        if (move.piece && move.piece.color === color) {
+            friendlySurrounding++;
+        }
+    }
+    score += friendlySurrounding * 5;
+
+    return score;
   }
   
-  function applyMove(board, move) {
-  let newBoard = structuredClone(board);
-  
-  let piece = newBoard[move.from.row][move.from.col].piece;
-  newBoard[move.from.row][move.from.col].piece = null;
-  newBoard[move.to.y][move.to.x].piece = piece;
-  
-  return newBoard;
+  // Function to determine if the game is over
+  function gameOver(board) {
+    // ...
   }
   
-  function simulate(board) {
-  let currentBoard = structuredClone(board);
-  while (!gameOver(currentBoard)) {
-  let moves = generateMoves(currentBoard);
-  let move = moves[Math.floor(Math.random() * moves.length)];
-  currentBoard = applyMove(currentBoard, move);
+  // Set the maximum search depth based on the desired difficulty level
+  let searchDepth;
+  switch (difficultyLevel) {
+    case DIFFICULTY_LEVELS.NORMAL:
+      searchDepth = 3;
+      break;
+    case DIFFICULTY_LEVELS.HARD:
+      searchDepth = 1;
+      break;
+    case DIFFICULTY_LEVELS.IMPOSSIBLE:
+      searchDepth = 9;
+      break;
   }
-  return evaluatePosition(currentBoard);
-  }
+  
+  // Run the minimax algorithm to find the best move
+    let bestMove = alphaBeta(board, searchDepth, true, -Infinity, Infinity, 'b');
+    console.log(bestMove);
+
+  return bestMove.move;
+}

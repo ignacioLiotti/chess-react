@@ -82,83 +82,56 @@
     function isRookInStartingPosition(point){
       const rook = getPiece(point, board)
 
-      if (piece?.color === 'w'){
-        if(rook?.history.length === 0 && rook?.id === 'rw'){
+        if(rook?.history.length === 0 && rook?.type === 'r'){
           return true
         }
-      } else if (piece?.color === 'b'){
-        if(rook?.history.length === 0 && rook?.id === 'rb'){
-          return true
-        }
-      }
 
       return false
     }
 
     const isKingInStartingPosition = ( piece?.type === 'k' && piece.history.length === 0 ) ? true : false
 
-    function canCastle(){
+    function canCastle(piece, board) {
+      if (!(piece.type === "k" && piece.history.length === 0)) {
+        return []
+      }
+    
+      const y = piece.color === "w" ? 7 : 0
       let castleMovement = []
-
-      if(isKingInStartingPosition){
-        const y = piece?.color === 'w' ? 7 : 0
-        if (canCastleLeft(y)){
-          castleMovement.push('left')
-        }
-        if (canCastleRight(y)){
-          castleMovement.push('right')
-        }
+    
+      if (getPiece({ x: 1, y }, board) === null &&
+          getPiece({ x: 2, y }, board) === null &&
+          getPiece({ x: 3, y }, board) === null &&
+          isRookInStartingPosition({ x: 0, y }, board)) {
+        castleMovement.push('left')
       }
-      function canCastleLeft(y) {
-        return getPiece({ x: 1, y }, board) === null &&
-               getPiece({ x: 2, y }, board) === null &&
-               getPiece({ x: 3, y }, board) === null &&
-               isRookInStartingPosition({ x: 0, y });
+    
+      if (getPiece({ x: 5, y }, board) === null &&
+          getPiece({ x: 6, y }, board) === null &&
+          isRookInStartingPosition({ x: 7, y }, board)) {
+        castleMovement.push('right')
       }
-      
-      function canCastleRight(y) {
-        return getPiece({ x: 5, y }, board) === null &&
-               getPiece({ x: 6, y }, board) === null &&
-               isRookInStartingPosition({ x: 7, y });
-      }
-
+    
       return castleMovement
     }
 
-    if(piece?.type === 'p' && piece?.y === 6 && piece?.color === 'w'){
-      return (
-        {
-          movements:[
-            {
-              x: 0,
-              y: -2,
-            },
-            {
-              x: 0,
-              y: -1,
-            }
-          ],
-          multipleSteps: false,
-        }
-      )
-    }
-    if(piece?.type === 'p' && piece?.y === 1 && piece?.color === 'b'){
-      return (
-        {
-          movements:[
-            {
-              x: 0,
-              y: 2,
-            },
-            {
-              x: 0,
-              y: 1,
-            }
-          ],
-          multipleSteps: false,
-        }
-      )
-    }
+    function getPawnMovement(piece) {
+      if (piece?.type !== 'p') return;
+      const { y } = piece;
+      let movements;
+      if (piece?.color === 'w' && y === 6) {
+      movements = [{ x: 0, y: -2 }, { x: 0, y: -1 }];
+      } else if (piece?.color === 'b' && y === 1) {
+      movements = [{ x: 0, y: 2 }, { x: 0, y: 1 }];
+      }
+      return movements ? { movements, multipleSteps: false } : null;
+      }
+      
+      // Usage:
+      const pawnMovement = getPawnMovement(piece);
+      if (pawnMovement) {
+      // Use pawnMovement.movements and pawnMovement.multipleSteps
+      }
 
     if(piece?.type === 'p'){
     //check if there is an oponent piece either diagonally or on its sides, and add an attack move 
@@ -216,10 +189,10 @@
       return movement
     }
 
-    if(piece?.type === 'k' && canCastle()){
+    if(piece?.type === 'k' && canCastle(piece, board)){
       let kingsMovement = movements[piece?.type]
 
-      if (canCastle().includes('left')){
+      if (canCastle(piece, board).includes('left')){
         // check if the movement has already been added
 
         kingsMovement.movements.some(movement => movement.x === -2 && movement.y === 0) ? null : (
@@ -230,7 +203,7 @@
       } else {
         kingsMovement.movements.some(movement => movement.x === -2 && movement.y === 0) ? kingsMovement.movements.splice(kingsMovement.movements.findIndex(movement => movement.x === -2 && movement.y === 0), 1) : null
       }
-      if (canCastle().includes('right')){
+      if (canCastle(piece, board).includes('right')){
         // check if the movement has already been added
         kingsMovement.movements.some(movement => movement.x === 2 && movement.y === 0) ? null : (
         kingsMovement.movements.push({
@@ -296,15 +269,15 @@
 
     const pieceMovementsDetails = getMovement(piece, board)
 
+    console.log(pieceMovementsDetails)
+
     if (pieceMovementsDetails === null) return null
 
     if (pieceMovementsDetails.multipleSteps) {
-      // check all if the piece can move multiple steps in a direction and add all the possible points to the array, if a piece of the same color is in the way, stop checking that direction until the point before the piece, if a piece of the opposite color is in the way, add that point to the array and stop checking that direction
       pieceMovementsDetails?.movements?.forEach(direction => {
         possibleMoves.push(...checkSingleDirectionRepeatedly(piece, board, direction))
       })
     } else {
-      // check all if the piece can move once in a direction and add all the possible points to the array, if a piece of the same color is in the way, stop checking that direction, if a piece of the opposite color is in the way, add that point to the array and stop checking that direction
 
       pieceMovementsDetails?.movements?.forEach(direction => {
         let { x: movementX, y: movementY } = direction
@@ -318,8 +291,14 @@
         if (board[newY][newX].piece === null) {
           possibleMoves.push({ x: newX, y: newY, attack: false, attackedPiece: undefined })
         } else if (board[newY][newX].piece.color !== piece.color) {
+
             if (piece.type === 'p' && (movementX === 0)) return
+
             possibleMoves.push({ x: newX, y: newY, attack: true, attackedPiece: board[newY][newX] })
+            // console.log('bolas',possibleMoves)
+
+        } else if (board[newY][newX].piece === piece) {
+          console.log('ACA SE ROMPE', board[newY][newX].piece, piece)
         }
       })
     }

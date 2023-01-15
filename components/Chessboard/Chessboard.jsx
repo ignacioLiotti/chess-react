@@ -7,7 +7,7 @@ import { initial, reducer } from "./reducer"
 import { Chess } from 'chess.js'
 import styles from './chessboard.module.css'
 import aiPlayer from './chessAI'
-import { getPiece } from "./chessUtils/simpleUtils"
+import { getPiece, getPosition } from "./chessUtils/simpleUtils"
 
 export default function App({rotation}) {
 	const [state, dispatch] = React.useReducer(reducer, initial)
@@ -32,10 +32,11 @@ export default function App({rotation}) {
 	React.useEffect(() => {
 		// add the pieces from the chess object to the state
 		dispatch({ type: "ADD_PIECES", payload: {pieces} })
+		// console.log('pieces', state)
 	}, [])
 
 	React.useEffect(() => {
-		// console.log('CHECK',state.check)
+		// console.log('CHECK',state.pieces)
 	}, [state])
 
 	React.useEffect(() => {
@@ -45,9 +46,10 @@ export default function App({rotation}) {
 
 			const movingPiece = getPiece({x: predictedMove.from.col, y: predictedMove.from.row}, state.board )
 
+			// const attackedPiece = getPiece({x:})
+
 			setTimeout(() => {
-				console.log('moving piece', movingPiece, predictedMove)
-				dispatch({ type: "MOVE_PIECE", payload: {piece: movingPiece, point: {x: predictedMove.to.x, y: predictedMove.to.y}, attackedPiece: predictedMove.attackedPiece } })
+				dispatch({ type: "MOVE_PIECE", payload: {piece: movingPiece, point: {x: predictedMove.to.x, y: predictedMove.to.y}, attackedPiece: predictedMove.to.attackedPiece } })
 			}, 1000)
 		}
 	}, [state.turn])
@@ -177,6 +179,8 @@ const ChessCell = ({ x,y, dispatch, state }) => {
 								dispatch({ type: "MOVE_PIECE", payload: { piece: state.selectedPiece, point: {x, y}, attackedPiece: attackedPiece } })
 							}
 
+							const positionLabel = getPosition({x:x,y:y},state.board)
+
 							return (
 								<div
 									onClick={handleMovement}
@@ -185,8 +189,10 @@ const ChessCell = ({ x,y, dispatch, state }) => {
 									style={{
 										backgroundColor: willFit ? isAnAttack ? 'blue' : 'green' : cellColor,
 										pointerEvents: willFit ? 'all' : 'none',
+										fontWeight: 800
 									}}
 								>
+									{positionLabel}
 								</div>
 							)
 						// }
