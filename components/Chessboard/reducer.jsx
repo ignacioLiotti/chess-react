@@ -109,7 +109,7 @@ export const reducer = (state, action) => {
       let flag = false 
       nextState.pieces.forEach(piece => {
         piece.possibleMoves = lookForMovements(piece, nextState.board)
-        piece.possibleMoves.forEach(point => {
+        piece.possibleMoves?.forEach(point => {
           if (point.attack && point?.attackedPiece?.piece?.type === 'k'){
             flag = true
             nextState.check = {king: point.attackedPiece.piece.id}

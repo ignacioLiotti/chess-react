@@ -19,8 +19,8 @@
 }
 .chessWrapper{
 	position: relative;
-	width: calc(100vw - 20px);
-	height: calc(100vh - 20px);
+	width: 600px;
+	height: 600px;
 	overflow: hidden;
 	border: 1px solid #ccc;
 	display: flex;

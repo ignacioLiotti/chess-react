@@ -30,6 +30,7 @@ export default function Home() {
           justifyContent: 'center',
           alignItems: 'center',
           width: '100%',
+          maxHeight: '80vh',
           transformStyle: 'preserve-3d',
           perspective: '1000px',
           perspectiveOrigin: '50% 50%'

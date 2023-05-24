@@ -85,22 +85,22 @@ export default function aiPlayer(board, difficultyLevel) {
   
   
   // Function to evaluate the current position on the board
+  
   function evaluatePosition(board, color) {
     let score = 0;
     // Material advantage
     score += getMaterialScore(board, color);
     // Mobility
-    score += getMobilityScore(board, color);
     // King safety
     score += getKingSafetyScore(board, color);
     // Pawn structure
-    score += getPawnStructureScore(board, color);
-    // Attacking opponent's pieces
-    score += getAttackScore(board, color);
-    // Control of the center
-    score += getCenterControlScore(board, color);
-    // King attack
-    score += getKingAttackScore(board, color);
+    // score += getPawnStructureScore(board, color);
+    // // Attacking opponent's pieces
+    // score += getAttackScore(board, color);
+    // // Control of the center
+    // score += getCenterControlScore(board, color);
+    // // King attack
+    // score += getKingAttackScore(board, color);
 
     return score;
   }
@@ -117,9 +117,9 @@ export default function aiPlayer(board, difficultyLevel) {
     return score;
   }
 
-  function getMobilityScore(piece, board) {
+  function getMobilityScore(board, color) {
     let mobilityScore = 0;
-    const possibleMoves = lookForMovements(piece, board);
+    const possibleMoves = lookForMovements(color, board);
     // for each possible move, increment the mobility score
     possibleMoves.forEach(move => {
         mobilityScore++;
@@ -141,14 +141,14 @@ export default function aiPlayer(board, difficultyLevel) {
     }
 
     // check if the king is in check
-    if (lookForCheck(king, board)) {
-        score -= 100;
-    }
+    // if (lookForCheck(king, board)) {
+    //     score -= 100;
+    // }
 
     // check if the king is in checkmate
-    if (lookForCheckmate(king, board)) {
-        score -= 1000;
-    }
+    // if (lookForCheckmate(king, board)) {
+    //     score -= 1000;
+    // }
 
     // check if the king is in a safe position
     let safeSquares = 0;

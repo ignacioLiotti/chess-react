@@ -79,6 +79,8 @@
     // get the movement of a piece based on its id, and if it is a pawn, check if it is the first move and if it is, add the movement of 2 steps forward and check its color
     let movement = []
 
+    console.log(piece)
+
     function isRookInStartingPosition(point){
       const rook = getPiece(point, board)
 
@@ -123,6 +125,10 @@
       movements = [{ x: 0, y: -2 }, { x: 0, y: -1 }];
       } else if (piece?.color === 'b' && y === 1) {
       movements = [{ x: 0, y: 2 }, { x: 0, y: 1 }];
+      } else if (piece?.color === 'w') {
+      movements = [{ x: 0, y: -1 }];
+      } else if (piece?.color === 'b') {
+      movements = [{ x: 0, y: 1 }];
       }
       return movements ? { movements, multipleSteps: false } : null;
       }
@@ -130,16 +136,15 @@
       // Usage:
       const pawnMovement = getPawnMovement(piece);
       if (pawnMovement) {
-      // Use pawnMovement.movements and pawnMovement.multipleSteps
       }
 
     if(piece?.type === 'p'){
-    //check if there is an oponent piece either diagonally or on its sides, and add an attack move 
 
+    //check if there is an oponent piece either diagonally or on its sides, and add an attack move 
       const right = getPiece({ x: piece?.x + 1, y: piece?.y + (piece?.color === 'w' ? -1 : 1) }, board)
       const left = getPiece({ x: piece?.x - 1, y: piece?.y + (piece?.color === 'w' ? -1 : 1) }, board)
 
-      let pieceMovements = structuredClone(movements[piece?.id])
+      let pieceMovements = getPawnMovement(piece)
 
       if(right?.color !== piece?.color && right !== null){
         pieceMovements.movements.push({
@@ -218,6 +223,8 @@
     }
 
     movement = movements[piece?.type]
+
+    console.log(movement)
     
     return movement
   }
@@ -264,13 +271,9 @@
     // check all the movements a piece can make
     // return an array of all the possible points it can move to
     const { x, y } = piece
-
     const possibleMoves = []
 
     const pieceMovementsDetails = getMovement(piece, board)
-
-    console.log(pieceMovementsDetails)
-
     if (pieceMovementsDetails === null) return null
 
     if (pieceMovementsDetails.multipleSteps) {
